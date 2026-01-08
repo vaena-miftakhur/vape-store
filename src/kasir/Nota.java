@@ -4,20 +4,54 @@
  */
 package kasir;
 
+import javax.swing.table.DefaultTableModel;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  *
  * @author Lenovo
  */
 public class Nota extends javax.swing.JDialog {
-    
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Nota.class.getName());
 
     /**
-     * Creates new form Nota
+     * Constructor Utama
      */
-    public Nota(java.awt.Frame parent, boolean modal) {
+    public Nota(javax.swing.JFrame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+    }
+
+    /**
+     * Method untuk mengisi data dari Halaman_Kasir ke Nota
+     */
+    public void setDataNota(DefaultTableModel modelTabelKasir, String total, String bayar, String kembali) {
+        // 1. Salin data tabel dari Kasir ke tabel di Nota
+        DefaultTableModel modelNota = (DefaultTableModel) jTable1.getModel();
+        modelNota.setRowCount(0); 
+        
+        for (int i = 0; i < modelTabelKasir.getRowCount(); i++) {
+            Object[] row = {
+                modelTabelKasir.getValueAt(i, 0), // ID
+                modelTabelKasir.getValueAt(i, 1), // Nama Barang
+                modelTabelKasir.getValueAt(i, 2), // Jumlah
+                modelTabelKasir.getValueAt(i, 3)  // Harga
+            };
+            modelNota.addRow(row);
+        }
+
+        // 2. Set label ringkasan pembayaran
+        jLabel12.setText(total);   // Total Belanja
+        jLabel13.setText("Rp. " + bayar);   // Uang Pembayaran
+        jLabel14.setText(kembali); // Uang Kembali
+
+        // 3. Set Tanggal & No Transaksi Otomatis
+        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        jLabel8.setText(sdf.format(new Date()));
+        jLabel6.setText("TRX" + System.currentTimeMillis() / 100000);
+        jLabel7.setText("Admin");
     }
 
     /**

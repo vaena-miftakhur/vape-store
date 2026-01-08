@@ -4,12 +4,14 @@
  */
 package kasir;
 
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import kasir.Laporan_keuangan;
 
 /**
  *
@@ -31,6 +33,27 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
         // ENTER pada jTextField3 = langsung jalankan tombol Cari
         jTextField3.addActionListener(e -> jButton6ActionPerformed(null));
+        
+        // Format otomatis titik ribuan saat mengetik di jTextField2 (Uang Bayar)
+        jTextField2.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                formatRibuan(jTextField2);
+            }
+        });   
+    }
+        
+    // Method untuk memformat tampilan titik ribuan saat mengetik
+    private void formatRibuan(javax.swing.JTextField field) {
+        try {
+            String original = field.getText().replaceAll("[^\\d]", "");
+            if (original.isEmpty()) return;
+            long nominal = Long.parseLong(original);
+            String formatted = String.format(java.util.Locale.ITALY, "%,d", nominal);
+            field.setText(formatted);
+        } catch (Exception e) {
+        }
+       
     }
 
     /**
@@ -175,6 +198,11 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
         jButton2.setText("Laporan Keuangan");
         jButton2.setToolTipText("");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
 
         jButton3.setText("Riwayat Transaksi");
 
@@ -188,6 +216,11 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
         jButton5.setBackground(new java.awt.Color(102, 255, 102));
         jButton5.setText("CHECKOUT");
+        jButton5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton5ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -251,18 +284,29 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO add your handling code here:
+        int selectedRow = jTable1.getSelectedRow();
+    if (selectedRow != -1) {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.removeRow(selectedRow);
+        hitungTotalHarga(); // Update total harga setelah dihapus
+    } else {
+        JOptionPane.showMessageDialog(this, "Pilih baris yang ingin dihapus!");
+    }
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void hitungTotalHarga() {
-        double total = 0;
-        for (int i = 0; i < jTable1.getRowCount(); i++) {
-            double value = Double.parseDouble(jTable1.getValueAt(i, 4).toString());
-            total += value;
-        }
-        jLabel5.setText("Rp. " + total); // total harga
+    double total = 0;
+    for (int i = 0; i < jTable1.getRowCount(); i++) {
+        // Ambil string lalu bersihkan dari karakter non-angka sebelum dihitung
+        String val = jTable1.getValueAt(i, 4).toString().replaceAll("[^0-9]", "");
+        total += Double.parseDouble(val);
     }
+    // Pakai Locale.ITALY agar otomatis muncul titik pemisah ribuan
+    String tampilTotal = String.format(java.util.Locale.ITALY, "%,.0f", total);
+    jLabel5.setText("Rp. " + tampilTotal);
+}
+    
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
-        // TODO add your handling code here:
         String keyword = jTextField3.getText().trim();
 
         if (keyword.isEmpty()) {
@@ -271,10 +315,7 @@ public class Halaman_Kasir extends javax.swing.JFrame {
         }
 
         try (Connection conn = vapestore.koneksi.getKoneksi()) {
-
-            String sql = "SELECT id, product_name, product_price_s FROM products "
-                    + "WHERE product_code=? OR id = ?";
-
+            String sql = "SELECT id, product_name, product_price_s FROM products WHERE product_code=? OR id = ?";
             PreparedStatement pst = conn.prepareStatement(sql);
             pst.setString(1, keyword);
             pst.setString(2, keyword);
@@ -283,51 +324,41 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
             if (rs.next()) {
                 int id = rs.getInt("id");
-                System.out.println("id=" + id);
                 String name = rs.getString("product_name");
                 double harga = rs.getDouble("product_price_s");
                 int qty = 1;
-                double total = qty * harga;
-
+                
+                // BUAT FORMATTER DISINI
+                java.util.Locale localeID = java.util.Locale.ITALY;
                 DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
 
                 int n = jTable1.getRowCount();
-                if (n > 0) {
-                    int ada = 0;                    
-                    for (int i = 0; i < n; i++) {
-                        String idP = jTable1.getValueAt(i, 0).toString();
-                        System.out.println("idP=" + idP);
-
-                        int idI = Integer.parseInt(idP);
-                        if (idI == id) {
-                            ada = 1;
-                            String jumlah = jTable1.getValueAt(i, 2).toString();
-                            int jml = Integer.parseInt(jumlah);
-                            int newjml = jml + 1;
-                            double totalT = harga * newjml;
-                            
-                            jTable1.setValueAt(newjml, i, 2);
-                            jTable1.setValueAt(totalT, i, 4);
-                            
-
-                            break;
-                        }
+                boolean ada = false;
+                
+                for (int i = 0; i < n; i++) {
+                    int idI = Integer.parseInt(jTable1.getValueAt(i, 0).toString());
+                    if (idI == id) {
+                        ada = true;
+                        int jml = Integer.parseInt(jTable1.getValueAt(i, 2).toString());
+                        int newjml = jml + 1;
+                        double totalT = harga * newjml;
+                        
+                        // Update Baris yang sudah ada dengan format titik
+                        jTable1.setValueAt(newjml, i, 2);
+                        jTable1.setValueAt(String.format(localeID, "%,.0f", totalT), i, 4);
+                        break;
                     }
-                    if(ada == 0){
-                        model.addRow(new Object[]{id, name, qty, harga, total});
-                    }
-                    
-                }else {
-                    model.addRow(new Object[]{id, name, qty, harga, total});
                 }
 
-//                try {
-//                    Thread.sleep(200);
-//                } catch (Exception e) {
-//                }
+                if (!ada) {
+                    // Masukkan baris BARU dengan format titik
+                    String hargaF = String.format(localeID, "%,.0f", harga);
+                    String totalF = String.format(localeID, "%,.0f", harga * qty);
+                    model.addRow(new Object[]{id, name, qty, hargaF, totalF});
+                }
 
                 hitungTotalHarga();
-                jTextField3.setText(""); // kosongkan field setelah cari
+                jTextField3.setText(""); 
                 jTextField3.requestFocus();
             } else {
                 JOptionPane.showMessageDialog(this, "Produk tidak ditemukan!");
@@ -341,6 +372,79 @@ public class Halaman_Kasir extends javax.swing.JFrame {
     private void jTextField3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField3ActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_jTextField3ActionPerformed
+
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
+        try {
+        // 1. Bersihkan input dari karakter non-angka
+        String totalClean = jLabel5.getText().replaceAll("[^0-9]", "");
+        String bayarClean = jTextField2.getText().replaceAll("[^0-9]", "");
+
+        if (bayarClean.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Masukkan nominal uang bayar!");
+            return;
+        }
+
+        double totalHarga = Double.parseDouble(totalClean);
+        double uangBayar = Double.parseDouble(bayarClean);
+
+        if (uangBayar < totalHarga) {
+            JOptionPane.showMessageDialog(this, "Uang pembayaran tidak cukup!");
+            return;
+        }
+
+        // 2. Hitung Kembalian & Format Rupiah (PENTING: Gunakan Locale.ITALY)
+        double kembalian = uangBayar - totalHarga;
+        
+        // Locale.ITALY otomatis menggunakan titik (.) untuk ribuan
+        String formatKembalian = String.format(java.util.Locale.ITALY, "%,.0f", kembalian);
+        
+        // Set teks ke label (Contoh: Rp. 50.000)
+        jLabel4.setText("Rp. " + formatKembalian);
+        
+        // 3. Tampilkan Nota
+        Nota dialogNota = new Nota(this, true);
+        String bayarDiformat = jTextField2.getText();
+
+        dialogNota.setDataNota(
+            (DefaultTableModel) jTable1.getModel(), 
+            jLabel5.getText(), 
+            bayarDiformat, 
+            jLabel4.getText()
+        );
+        
+        dialogNota.setLocationRelativeTo(this);
+        dialogNota.setVisible(true); 
+        
+        // 4. Reset Form (Gunakan format 0 yang konsisten)
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
+        
+        jLabel5.setText("Rp. 0"); // Total Kembali ke 0
+        jLabel4.setText("Rp. 0"); // Kembalian Kembali ke 0
+        jTextField2.setText("");
+
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this, "Input hanya boleh angka!");
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Gagal Checkout: " + e.getMessage());
+        e.printStackTrace();
+    }
+    }//GEN-LAST:event_jButton5ActionPerformed
+
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        try {
+            Laporan_keuangan laporan = new Laporan_keuangan();
+            laporan.setVisible(true);
+            this.dispose(); // optional: tutup form sekarang
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, 
+                "Gagal membuka laporan keuangan\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+            e.printStackTrace();
+        }
+    }//GEN-LAST:event_jButton2ActionPerformed
 
     /**
      * @param args the command line arguments

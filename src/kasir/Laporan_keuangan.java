@@ -4,19 +4,69 @@
  */
 package kasir;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
 /**
  *
  * @author Lenovo
  */
-public class laporan_keuangan extends javax.swing.JFrame {
+public class Laporan_keuangan extends javax.swing.JFrame {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(laporan_keuangan.class.getName());
-
-    /**
-     * Creates new form laporan_keuangan
-     */
-    public laporan_keuangan() {
+    private JTable jTable1;
+    private JLabel jLabelTotal;
+}
+    
+    public Laporan_keuangan() {
         initComponents();
+        setLocationRelativeTo(null);
+        loadLaporan();
+        hitungTotalPendapatan();
+    }
+    
+    private void initComponents() {
+        setTitle("Laporan Keuangan");
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setSize(800, 500);
+
+        // ===== PANEL ATAS =====
+        JPanel panelTop = new JPanel();
+        panelTop.setBackground(new java.awt.Color(0, 204, 51));
+
+        JButton btnBack = new JButton("Back");
+        btnBack.addActionListener(e -> dispose());
+
+        JLabel lblTitle = new JLabel("LAPORAN KEUANGAN");
+        lblTitle.setFont(new java.awt.Font("Tahoma", 1, 24));
+        lblTitle.setForeground(java.awt.Color.WHITE);
+
+        panelTop.add(btnBack);
+        panelTop.add(lblTitle);
+
+        // ===== TABLE =====
+        jTable1 = new JTable();
+        jTable1.setModel(new DefaultTableModel(
+            new Object[][]{},
+            new String[]{"Tanggal", "ID Transaksi", "Produk", "Qty", "Harga", "Subtotal"}
+        ));
+
+        JScrollPane scrollPane = new JScrollPane(jTable1);
+
+        // ===== BOTTOM =====
+        JPanel panelBottom = new JPanel();
+        jLabelTotal = new JLabel("Rp. 0");
+        jLabelTotal.setFont(new java.awt.Font("Tahoma", 1, 16));
+        panelBottom.add(new JLabel("Total Pendapatan : "));
+        panelBottom.add(jLabelTotal);
+
+        // ===== LAYOUT =====
+        setLayout(new java.awt.BorderLayout());
+        add(panelTop, java.awt.BorderLayout.NORTH);
+        add(scrollPane, java.awt.BorderLayout.CENTER);
+        add(panelBottom, java.awt.BorderLayout.SOUTH);
     }
 
     /**
@@ -88,30 +138,54 @@ public class laporan_keuangan extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
+    private void loadLaporan() {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new laporan_keuangan().setVisible(true));
+        try (Connection conn = vapestore.koneksi.getKoneksi()) {
+
+            String sql = """
+                SELECT tanggal_transaksi, id_transaksi, id_produk, jumlah_produk, harga_satuan, total_harga_produk
+                FROM transaksi_detail
+                ORDER BY tanggal DESC
+            """;
+
+            PreparedStatement pst = conn.prepareStatement(sql);
+            ResultSet rs = pst.executeQuery();
+
+            java.util.Locale localeID = java.util.Locale.ITALY;
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getDate("tangga_transaksil"),
+                    rs.getString("id_transaksi"),
+                    rs.getString("id_produk"),
+                    rs.getInt("jumlah_produk"),
+                    String.format(localeID, "%,.0f", rs.getDouble("harga")),
+                    String.format(localeID, "%,.0f", rs.getDouble("subtotal"))
+                });
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal memuat laporan: " + e.getMessage());
+        }
     }
+
+    private void hitungTotalPendapatan() {
+        double total = 0;
+
+        for (int i = 0; i < jTable1.getRowCount(); i++) {
+            String val = jTable1.getValueAt(i, 5)
+                .toString()
+                .replaceAll("[^0-9]", "");
+            total += Double.parseDouble(val);
+        }
+
+        String hasil = String.format(java.util.Locale.ITALY, "%,.0f", total);
+        jLabelTotal.setText("Rp. " + hasil);
+    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -120,4 +194,4 @@ public class laporan_keuangan extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
-}
+
