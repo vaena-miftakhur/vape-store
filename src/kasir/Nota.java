@@ -7,12 +7,22 @@ package kasir;
 import javax.swing.table.DefaultTableModel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import vapestore.koneksi;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import javax.swing.JOptionPane;
+
 
 /**
  *
- * @author Lenovo
+ * @author vaena
  */
 public class Nota extends javax.swing.JDialog {
+    
+    private int idTransaksi;
+
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Nota.class.getName());
 
@@ -22,38 +32,52 @@ public class Nota extends javax.swing.JDialog {
     public Nota(javax.swing.JFrame parent, boolean modal) {
         super(parent, modal);
         initComponents();
+        setSize(450, 520);
+        setLocationRelativeTo(parent);
     }
+    
+    public void setDataNota(
+            DefaultTableModel modelTabelKasir,
+            String total,
+            String bayar,
+            String kembali,
+            String namaKasir,
+            int idTransaksi
+    ) {
+        this.idTransaksi = idTransaksi;
 
-    /**
-     * Method untuk mengisi data dari Halaman_Kasir ke Nota
-     */
-    public void setDataNota(DefaultTableModel modelTabelKasir, String total, String bayar, String kembali) {
-        // 1. Salin data tabel dari Kasir ke tabel di Nota
+        // Salin tabel dari kasir ke nota
         DefaultTableModel modelNota = (DefaultTableModel) jTable1.getModel();
-        modelNota.setRowCount(0); 
-        
+        modelNota.setRowCount(0);
+
         for (int i = 0; i < modelTabelKasir.getRowCount(); i++) {
             Object[] row = {
-                modelTabelKasir.getValueAt(i, 0), // ID
-                modelTabelKasir.getValueAt(i, 1), // Nama Barang
-                modelTabelKasir.getValueAt(i, 2), // Jumlah
-                modelTabelKasir.getValueAt(i, 3)  // Harga
+                modelTabelKasir.getValueAt(i, 0),
+                modelTabelKasir.getValueAt(i, 1),
+                modelTabelKasir.getValueAt(i, 2),
+                modelTabelKasir.getValueAt(i, 3)
             };
             modelNota.addRow(row);
         }
 
-        // 2. Set label ringkasan pembayaran
-        jLabel12.setText(total);   // Total Belanja
-        jLabel13.setText("Rp. " + bayar);   // Uang Pembayaran
-        jLabel14.setText(kembali); // Uang Kembali
+        // Set ringkasan
+        jLabel12.setText(total);
+        jLabel13.setText("Rp. " + bayar);
+        jLabel14.setText(kembali);
 
-        // 3. Set Tanggal & No Transaksi Otomatis
+        // Set info transaksi
         SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         jLabel8.setText(sdf.format(new Date()));
-        jLabel6.setText("TRX" + System.currentTimeMillis() / 100000);
-        jLabel7.setText("Admin");
+        jLabel6.setText("TRX" + idTransaksi);
+        jLabel7.setText(namaKasir);
     }
 
+
+
+    /**
+     * Method untuk mengisi data dari Halaman_Kasir ke Nota
+     */
+  
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -177,6 +201,11 @@ public class Nota extends javax.swing.JDialog {
         jLabel14.setText("Rp.0");
 
         jButton1.setText("Cetak");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -246,6 +275,44 @@ public class Nota extends javax.swing.JDialog {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        buatFileStruk(idTransaksi);
+        JOptionPane.showMessageDialog(this, "Struk berhasil disimpan");
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void buatFileStruk(int idTransaksi) {
+        try {
+            java.io.File file = new java.io.File("struk_TRX_" + idTransaksi + ".txt");
+            java.io.PrintWriter out = new java.io.PrintWriter(file);
+
+            out.println("====== RISE VAPESTORE ======");
+            out.println("No Transaksi : TRX" + idTransaksi);
+            out.println("Kasir        : " + jLabel7.getText());
+            out.println("Tanggal      : " + jLabel8.getText());
+            out.println("-----------------------------");
+
+            for (int i = 0; i < jTable1.getRowCount(); i++) {
+                out.println(
+                    jTable1.getValueAt(i, 1) + " x" +
+                    jTable1.getValueAt(i, 2) +
+                    " @ " + jTable1.getValueAt(i, 3)
+                );
+            }
+
+            out.println("-----------------------------");
+            out.println("Total   : " + jLabel12.getText());
+            out.println("Bayar   : " + jLabel13.getText());
+            out.println("Kembali : " + jLabel14.getText());
+            out.println("=============================");
+
+            out.close();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal membuat file struk\n" + e.getMessage());
+        }
+    }
 
     /**
      * @param args the command line arguments

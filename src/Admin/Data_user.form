@@ -173,6 +173,9 @@
               </Events>
             </Component>
             <Component class="javax.swing.JTextField" name="jTextField1">
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="jTextField1ActionPerformed"/>
+              </Events>
             </Component>
           </SubComponents>
         </Container>
@@ -190,13 +193,12 @@
         <Component class="javax.swing.JTable" name="jTable1">
           <Properties>
             <Property name="model" type="javax.swing.table.TableModel" editor="org.netbeans.modules.form.editors2.TableModelEditor">
-              <Table columnCount="6" rowCount="4">
-                <Column editable="true" title="ID" type="java.lang.Object"/>
-                <Column editable="true" title="NO" type="java.lang.Object"/>
-                <Column editable="true" title="NAMA LENGKAP" type="java.lang.Object"/>
-                <Column editable="true" title="USERNAME" type="java.lang.Object"/>
-                <Column editable="true" title="PASSWORD" type="java.lang.Object"/>
-                <Column editable="true" title="JABATAN" type="java.lang.Object"/>
+              <Table columnCount="5" rowCount="4">
+                <Column editable="false" title="ID" type="java.lang.Object"/>
+                <Column editable="false" title="NAMA LENGKAP" type="java.lang.Object"/>
+                <Column editable="false" title="USERNAME" type="java.lang.Object"/>
+                <Column editable="false" title="PASSWORD" type="java.lang.Object"/>
+                <Column editable="false" title="JABATAN" type="java.lang.Object"/>
               </Table>
             </Property>
           </Properties>

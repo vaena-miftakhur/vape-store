@@ -4,19 +4,51 @@
  */
 package kasir;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.JOptionPane;
+import vapestore.koneksi;
+import Admin.login1;
+
 /**
  *
- * @author lenovo
+ * @author vaena
  */
 public class Riwayat_transaksi extends javax.swing.JFrame {
-    
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Riwayat_transaksi.class.getName());
 
-    /**
-     * Creates new form Riwayat_transaksi
-     */
+    // ===============================
+    // DATA KASIR (WAJIB)
+    // ===============================
+    private int idKasir;
+    private String namaKasir;
+    private String asalHalaman;
+    
     public Riwayat_transaksi() {
         initComponents();
+        setLocationRelativeTo(null);
+        loadRiwayatTransaksi();
+    }
+    
+    // ===============================
+    // CONSTRUCTOR DARI HALAMAN KASIR
+    // ===============================
+    public Riwayat_transaksi(int idKasir, String namaKasir) {
+        this.idKasir = idKasir;
+        this.namaKasir = namaKasir;
+        this.asalHalaman = "KASIR"; // ⭐ INI WAJIB
+        initComponents();
+        setLocationRelativeTo(null);
+        loadRiwayatTransaksi();
+    }
+    
+    public Riwayat_transaksi(String asalHalaman) {
+        this.asalHalaman = asalHalaman;
+        initComponents();
+        setLocationRelativeTo(null);
+        loadRiwayatTransaksi();
     }
 
     /**
@@ -28,21 +60,152 @@ public class Riwayat_transaksi extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        jPanel1 = new javax.swing.JPanel();
+        jButton1 = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jTable1 = new javax.swing.JTable();
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        getContentPane().setLayout(null);
+
+        jPanel1.setBackground(new java.awt.Color(102, 255, 102));
+
+        jButton1.setText("Back");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+
+        jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
+        jLabel1.setText("RIWAYAT TRANSAKSI");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 81, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(249, 249, 249)
+                .addComponent(jLabel1)
+                .addContainerGap(382, Short.MAX_VALUE))
         );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, 38, Short.MAX_VALUE)
+                    .addComponent(jLabel1))
+                .addContainerGap())
         );
+
+        getContentPane().add(jPanel1);
+        jPanel1.setBounds(0, 0, 920, 50);
+
+        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null}
+            },
+            new String [] {
+                "id", "id_transaksi", "id Produk", "Jumlah Produk", "Harga Satuan", "Total", "Tanggal"
+            }
+        ));
+        jScrollPane1.setViewportView(jTable1);
+
+        getContentPane().add(jScrollPane1);
+        jScrollPane1.setBounds(0, 50, 920, 570);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        try {
+            // ===============================
+            // CEK DARI MANA HALAMAN DIBUKA
+            // ===============================
+            if ("ADMIN".equals(asalHalaman)) {
+
+                Admin.Halaman admin = new Admin.Halaman();
+                admin.setVisible(true);
+                admin.setLocationRelativeTo(null);
+
+            } else if ("OWNER".equals(asalHalaman)) {
+
+                Pemilik_bisnis.DashboardOwner owner =
+                        new Pemilik_bisnis.DashboardOwner();
+                owner.setVisible(true);
+                owner.setLocationRelativeTo(null);
+
+            } else if ("KASIR".equals(asalHalaman)) {
+
+                kasir.Halaman_Kasir kasir =
+                        new kasir.Halaman_Kasir(idKasir, namaKasir);
+                kasir.setVisible(true);
+                kasir.setLocationRelativeTo(null);
+
+            } else {
+                // fallback kalau asal tidak diketahui
+                new login1().setVisible(true);
+            }
+
+            this.dispose(); // tutup halaman riwayat
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal kembali ke halaman sebelumnya\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void loadRiwayatTransaksi() {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
+
+        String sql = """
+            SELECT 
+                td.id_transaksi_detail,
+                td.id_transaksi,
+                td.id_produk,
+                td.jumlah_produk,
+                td.harga_satuan,
+                td.total_harga_produk,
+                td.tanggal_transaksi
+            FROM transaksi_detail td
+            ORDER BY td.tanggal_transaksi DESC
+        """;
+
+        try (Connection conn = vapestore.koneksi.getKoneksi();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id_transaksi_detail"),
+                    rs.getInt("id_transaksi"),
+                    rs.getInt("id_produk"),
+                    rs.getInt("jumlah_produk"),
+                    rs.getInt("harga_satuan"),
+                    rs.getDouble("total_harga_produk"),
+                    rs.getTimestamp("tanggal_transaksi")
+                });
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal memuat riwayat transaksi\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
 
     /**
      * @param args the command line arguments
@@ -70,5 +233,10 @@ public class Riwayat_transaksi extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
 }

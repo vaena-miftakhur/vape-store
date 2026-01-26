@@ -13,7 +13,7 @@ import javax.swing.*;
 
 /**
  *
- * @author hp5cd
+ * @author vaena
  */
 public class Data_user extends javax.swing.JFrame {
     
@@ -32,7 +32,6 @@ public class Data_user extends javax.swing.JFrame {
     private void loadDataUser() {
         DefaultTableModel model = new DefaultTableModel();
         model.addColumn("ID");
-        model.addColumn("NO");
         model.addColumn("NAMA LENGKAP");
         model.addColumn("USERNAME");
         model.addColumn("PASSWORD");
@@ -47,7 +46,6 @@ public class Data_user extends javax.swing.JFrame {
             while (rs.next()) {
                 model.addRow(new Object[]{
                     rs.getInt("id"),
-                    no++,
                     rs.getString("nama"),
                     rs.getString("username"),
                     rs.getString("password"),
@@ -135,6 +133,12 @@ public class Data_user extends javax.swing.JFrame {
             }
         });
 
+        jTextField1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTextField1ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -196,15 +200,23 @@ public class Data_user extends javax.swing.JFrame {
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null},
-                {null, null, null, null, null, null}
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null},
+                {null, null, null, null, null}
             },
             new String [] {
-                "ID", "NO", "NAMA LENGKAP", "USERNAME", "PASSWORD", "JABATAN"
+                "ID", "NAMA LENGKAP", "USERNAME", "PASSWORD", "JABATAN"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
         jScrollPane2.setViewportView(jTable1);
 
         getContentPane().add(jScrollPane2);
@@ -229,47 +241,85 @@ public class Data_user extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO add your handling code here:
-        Edit_data et = new Edit_data(this, true);
-        et.setVisible(true);
+        int row = jTable1.getSelectedRow();
+
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Pilih data yang ingin diedit!");
+            return;
+        }
+
+        // AMBIL DATA SESUAI URUTAN KOLOM JTable
+        int id = Integer.parseInt(jTable1.getValueAt(row, 0).toString());
+        String fullname = jTable1.getValueAt(row, 1).toString();
+        String username = jTable1.getValueAt(row, 2).toString();
+        String password = jTable1.getValueAt(row, 3).toString();
+        String level = jTable1.getValueAt(row, 4).toString();
+
+        // BUKA DIALOG EDIT + KIRIM DATA
+        Edit_data edit = new Edit_data(this, true);
+        edit.setData(id, fullname, username, password, level);
+        edit.setLocationRelativeTo(this);
+        edit.setVisible(true);
         
+        loadDataUser(); // refresh setelah edit    
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         // TODO add your handling code here:
+                   
         String keyword = jTextField1.getText().trim();
 
-    if (keyword.isEmpty()) {
-        loadDataUser(); // tampilkan semua jika kosong
-        return;
-    }
-
-    try (Connection conn = koneksi.getKoneksi();
-         PreparedStatement pst = conn.prepareStatement(
-             "SELECT * FROM users WHERE nama LIKE ? OR username LIKE ?")) {
-
-        pst.setString(1, "%" + keyword + "%");
-        pst.setString(2, "%" + keyword + "%");
-        ResultSet rs = pst.executeQuery();
-
-        DefaultTableModel model = new DefaultTableModel(
-            new String[]{"ID", "NO", "NAMA LENGKAP", "USERNAME", "PASSWORD", "JABATAN"}, 0
-        );
-
-        int no = 1;
-        while (rs.next()) {
-            model.addRow(new Object[]{
-                rs.getInt("id"), no++, rs.getString("nama"),
-                rs.getString("username"), rs.getString("password"),
-                rs.getString("level")
-            });
+        if (keyword.isEmpty()) {
+            loadDataUser();
+            return;
         }
 
-        jTable1.setModel(model);
+        DefaultTableModel model = new DefaultTableModel();
+        model.addColumn("ID");
+        model.addColumn("NAMA LENGKAP");
+        model.addColumn("USERNAME");
+        model.addColumn("PASSWORD");
+        model.addColumn("JABATAN");
 
-    } catch (SQLException e) {
-        JOptionPane.showMessageDialog(this, "Kesalahan pencarian: " + e.getMessage());
-    }
+        try (Connection conn = koneksi.getKoneksi()) {
+
+            PreparedStatement pst;
+
+            // 🔹 JIKA KEYWORD ANGKA → CARI BERDASARKAN ID
+            if (keyword.matches("\\d+")) {
+                pst = conn.prepareStatement(
+                    "SELECT * FROM users WHERE id = ?"
+                );
+                pst.setInt(1, Integer.parseInt(keyword));
+            } 
+            // 🔹 JIKA TEKS → CARI NAMA / USERNAME
+            else {
+                pst = conn.prepareStatement(
+                    "SELECT * FROM users WHERE nama LIKE ? OR username LIKE ?"
+                );
+                pst.setString(1, "%" + keyword + "%");
+                pst.setString(2, "%" + keyword + "%");
+            }
+
+            ResultSet rs = pst.executeQuery();
+
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("nama"),
+                    rs.getString("username"),
+                    rs.getString("password"),
+                    rs.getString("level")
+                });
+            }
+
+            jTable1.setModel(model);
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Kesalahan pencarian: " + e.getMessage());
+        }
+
+
     }//GEN-LAST:event_jButton6ActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
@@ -321,6 +371,11 @@ public class Data_user extends javax.swing.JFrame {
 
     }//GEN-LAST:event_jButton5ActionPerformed
 
+    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
+        // TODO add your handling code here:
+        // tekan ENTER = langsung cari
+        jButton6ActionPerformed(evt);
+    }//GEN-LAST:event_jTextField1ActionPerformed
 
     /**
      * @param args the command line arguments

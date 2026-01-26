@@ -9,64 +9,38 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import vapestore.koneksi;
+import Pemilik_bisnis.DashboardOwner;
+
 
 /**
  *
- * @author Lenovo
+ * @author vaena
  */
 public class Laporan_keuangan extends javax.swing.JFrame {
     
-    private JTable jTable1;
-    private JLabel jLabelTotal;
-}
+    // DATA KASIR (WAJIB ADA)
+    // ===============================
+    private int idKasir;
+    private String namaKasir;
     
     public Laporan_keuangan() {
         initComponents();
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         loadLaporan();
-        hitungTotalPendapatan();
     }
     
-    private void initComponents() {
-        setTitle("Laporan Keuangan");
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(800, 500);
-
-        // ===== PANEL ATAS =====
-        JPanel panelTop = new JPanel();
-        panelTop.setBackground(new java.awt.Color(0, 204, 51));
-
-        JButton btnBack = new JButton("Back");
-        btnBack.addActionListener(e -> dispose());
-
-        JLabel lblTitle = new JLabel("LAPORAN KEUANGAN");
-        lblTitle.setFont(new java.awt.Font("Tahoma", 1, 24));
-        lblTitle.setForeground(java.awt.Color.WHITE);
-
-        panelTop.add(btnBack);
-        panelTop.add(lblTitle);
-
-        // ===== TABLE =====
-        jTable1 = new JTable();
-        jTable1.setModel(new DefaultTableModel(
-            new Object[][]{},
-            new String[]{"Tanggal", "ID Transaksi", "Produk", "Qty", "Harga", "Subtotal"}
-        ));
-
-        JScrollPane scrollPane = new JScrollPane(jTable1);
-
-        // ===== BOTTOM =====
-        JPanel panelBottom = new JPanel();
-        jLabelTotal = new JLabel("Rp. 0");
-        jLabelTotal.setFont(new java.awt.Font("Tahoma", 1, 16));
-        panelBottom.add(new JLabel("Total Pendapatan : "));
-        panelBottom.add(jLabelTotal);
-
-        // ===== LAYOUT =====
-        setLayout(new java.awt.BorderLayout());
-        add(panelTop, java.awt.BorderLayout.NORTH);
-        add(scrollPane, java.awt.BorderLayout.CENTER);
-        add(panelBottom, java.awt.BorderLayout.SOUTH);
+    // ===============================
+    // CONSTRUCTOR DARI HALAMAN KASIR
+    // ===============================
+    public Laporan_keuangan(int idKasir, String namaKasir) {
+        this.idKasir = idKasir;
+        this.namaKasir = namaKasir;
+        initComponents();
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+        loadLaporan();
     }
 
     /**
@@ -94,6 +68,11 @@ public class Laporan_keuangan extends javax.swing.JFrame {
         jLabel1.setText("LAPORAN KEUANGAN");
 
         jButton1.setText("Back");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -117,7 +96,7 @@ public class Laporan_keuangan extends javax.swing.JFrame {
         );
 
         getContentPane().add(jPanel1);
-        jPanel1.setBounds(0, 0, 791, 85);
+        jPanel1.setBounds(0, 0, 789, 85);
 
         jTable1.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -138,6 +117,25 @@ public class Laporan_keuangan extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        try {
+            DashboardOwner dashboard = new DashboardOwner();
+            dashboard.setVisible(true);
+            dashboard.pack();
+            dashboard.setLocationRelativeTo(null);
+
+            // tutup halaman laporan keuangan
+            this.dispose();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Gagal kembali ke Dashboard Owner\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     private void loadLaporan() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
@@ -145,9 +143,14 @@ public class Laporan_keuangan extends javax.swing.JFrame {
         try (Connection conn = vapestore.koneksi.getKoneksi()) {
 
             String sql = """
-                SELECT tanggal_transaksi, id_transaksi, id_produk, jumlah_produk, harga_satuan, total_harga_produk
-                FROM transaksi_detail
-                ORDER BY tanggal DESC
+                SELECT  
+                    td.id_transaksi,
+                    u.nama AS nama_kasir,
+                    td.total_harga_produk,
+                    td.tanggal_transaksi
+                FROM transaksi_detail td
+                JOIN users u ON td.id_kasir = u.id
+                ORDER BY td.tanggal_transaksi DESC
             """;
 
             PreparedStatement pst = conn.prepareStatement(sql);
@@ -157,33 +160,18 @@ public class Laporan_keuangan extends javax.swing.JFrame {
 
             while (rs.next()) {
                 model.addRow(new Object[]{
-                    rs.getDate("tangga_transaksil"),
                     rs.getString("id_transaksi"),
-                    rs.getString("id_produk"),
-                    rs.getInt("jumlah_produk"),
-                    String.format(localeID, "%,.0f", rs.getDouble("harga")),
-                    String.format(localeID, "%,.0f", rs.getDouble("subtotal"))
+                    rs.getString("nama_kasir"),
+                    String.format(localeID, "%,.0f", rs.getDouble("total_harga_produk")),
+                    rs.getTimestamp("tanggal_transaksi")
                 });
+
             }
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
                 "Gagal memuat laporan: " + e.getMessage());
         }
-    }
-
-    private void hitungTotalPendapatan() {
-        double total = 0;
-
-        for (int i = 0; i < jTable1.getRowCount(); i++) {
-            String val = jTable1.getValueAt(i, 5)
-                .toString()
-                .replaceAll("[^0-9]", "");
-            total += Double.parseDouble(val);
-        }
-
-        String hasil = String.format(java.util.Locale.ITALY, "%,.0f", total);
-        jLabelTotal.setText("Rp. " + hasil);
     }
 
 
@@ -194,4 +182,4 @@ public class Laporan_keuangan extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTable1;
     // End of variables declaration//GEN-END:variables
-
+}

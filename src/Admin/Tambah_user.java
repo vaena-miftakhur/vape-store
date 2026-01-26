@@ -11,7 +11,7 @@ import javax.swing.JOptionPane;
 
 /**
  *
- * 
+ * @author vaena
  */
 public class Tambah_user extends javax.swing.JDialog {
     

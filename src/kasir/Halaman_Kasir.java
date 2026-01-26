@@ -12,36 +12,53 @@ import java.sql.SQLException;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 import kasir.Laporan_keuangan;
-
+import vapestore.koneksi;
+import kasir.Nota;
 /**
  *
- * @author Lenovo
+ * @author vaena
  */
 public class Halaman_Kasir extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Halaman_Kasir.class.getName());
+    
+    private int idKasirLogin;
+    private String namaKasirLogin;
 
-    /**
-     * Creates new form Halaman_Kasir
-     */
-    public Halaman_Kasir() {
+    
+    // Constructor baru
+    // Constructor BARU (WAJIB)
+    public Halaman_Kasir(int idKasir, String namaKasir) {
+        this.idKasirLogin = idKasir;
+        this.namaKasirLogin = namaKasir;
         initComponents();
+        initCustom();
+    }
 
-        // Hapus baris kosong default tabel
+    
+    private void initCustom() {
+        // Kosongkan tabel
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setRowCount(0);
 
-        // ENTER pada jTextField3 = langsung jalankan tombol Cari
+        // ENTER langsung cari
         jTextField3.addActionListener(e -> jButton6ActionPerformed(null));
-        
-        // Format otomatis titik ribuan saat mengetik di jTextField2 (Uang Bayar)
+
+        // Format ribuan saat mengetik uang bayar
         jTextField2.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 formatRibuan(jTextField2);
             }
-        });   
+        });
     }
+
+
+
+    /**
+     * Creates new form Halaman_Kasir
+     */
+    
         
     // Method untuk memformat tampilan titik ribuan saat mengetik
     private void formatRibuan(javax.swing.JTextField field) {
@@ -55,6 +72,73 @@ public class Halaman_Kasir extends javax.swing.JFrame {
         }
        
     }
+    
+    private int simpanTransaksi(double totalHarga) throws SQLException {
+        Connection conn = koneksi.getKoneksi();
+
+    String sql = 
+        "INSERT INTO transaksi (id_akun, total_harga, tanggal_transaksi) " +
+        "VALUES (?, ?, NOW())";
+
+    PreparedStatement ps = conn.prepareStatement(
+        sql,
+        PreparedStatement.RETURN_GENERATED_KEYS
+    );
+
+    // sementara pakai id kasir = 1
+    ps.setInt(1, idKasirLogin);
+    ps.setDouble(2, totalHarga);
+    ps.executeUpdate();
+
+    ResultSet rs = ps.getGeneratedKeys();
+    if (rs.next()) {
+        return rs.getInt(1); // id_transaksi
+    }
+
+    throw new SQLException("Gagal mendapatkan ID transaksi");
+    }
+    
+    private void simpanDetailTransaksi(
+            int idTransaksi,
+            DefaultTableModel model
+    ) throws SQLException {
+
+        Connection conn = koneksi.getKoneksi();
+
+        String sql =
+            "INSERT INTO transaksi_detail " +
+            "(id_transaksi, id_produk, jumlah_produk, harga_satuan, total_harga_produk, tanggal_transaksi, id_kasir) " +
+            "VALUES (?, ?, ?, ?, ?, NOW(), ?)";
+
+        PreparedStatement ps = conn.prepareStatement(sql);
+
+        for (int i = 0; i < model.getRowCount(); i++) {
+
+            int idProduk = Integer.parseInt(model.getValueAt(i, 0).toString());
+            int jumlah   = Integer.parseInt(model.getValueAt(i, 2).toString());
+
+            double harga = Double.parseDouble(
+                model.getValueAt(i, 3).toString().replaceAll("[^0-9]", "")
+            );
+
+            double subtotal = Double.parseDouble(
+                model.getValueAt(i, 4).toString().replaceAll("[^0-9]", "")
+            );
+
+            ps.setInt(1, idTransaksi);
+            ps.setInt(2, idProduk);
+            ps.setInt(3, jumlah);
+            ps.setDouble(4, harga);
+            ps.setDouble(5, subtotal);
+            ps.setInt(6, idKasirLogin);
+
+            ps.addBatch();
+        }
+
+        ps.executeBatch();
+    }
+
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -75,7 +159,6 @@ public class Halaman_Kasir extends javax.swing.JFrame {
         jButton6 = new javax.swing.JButton();
         jTextField3 = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
-        jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
         jLabel6 = new javax.swing.JLabel();
@@ -196,19 +279,21 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
         jPanel2.setBackground(new java.awt.Color(102, 102, 102));
 
-        jButton2.setText("Laporan Keuangan");
-        jButton2.setToolTipText("");
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        jButton3.setText("Riwayat Transaksi");
+        jButton3.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                jButton3ActionPerformed(evt);
             }
         });
-
-        jButton3.setText("Riwayat Transaksi");
 
         jButton4.setBackground(new java.awt.Color(255, 51, 51));
         jButton4.setForeground(new java.awt.Color(255, 255, 255));
         jButton4.setText("LogOut");
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
 
         jLabel6.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
         jLabel6.setForeground(new java.awt.Color(255, 255, 255));
@@ -229,8 +314,7 @@ public class Halaman_Kasir extends javax.swing.JFrame {
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, 128, Short.MAX_VALUE)
                     .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 318, Short.MAX_VALUE)
                 .addComponent(jLabel6)
@@ -243,21 +327,18 @@ public class Halaman_Kasir extends javax.swing.JFrame {
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(13, 13, 13)
-                .addComponent(jButton2)
+                .addGap(48, 48, 48)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jLabel6))
+                .addContainerGap(33, Short.MAX_VALUE))
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addGap(29, 29, 29)
+                .addComponent(jButton3)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 39, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel6))
-                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(jButton3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 17, Short.MAX_VALUE)
-                        .addComponent(jButton4)
-                        .addGap(9, 9, 9))))
+                .addComponent(jButton4)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         getContentPane().add(jPanel2);
@@ -375,105 +456,120 @@ public class Halaman_Kasir extends javax.swing.JFrame {
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
         try {
-        // 1. Bersihkan input dari karakter non-angka
-        String totalClean = jLabel5.getText().replaceAll("[^0-9]", "");
-        String bayarClean = jTextField2.getText().replaceAll("[^0-9]", "");
+            if (jTable1.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "Belum ada barang!");
+                return;
+            }
 
-        if (bayarClean.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Masukkan nominal uang bayar!");
-            return;
+            String totalClean = jLabel5.getText().replaceAll("[^0-9]", "");
+            String bayarClean = jTextField2.getText().replaceAll("[^0-9]", "");
+
+            if (totalClean.isEmpty() || bayarClean.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Data pembayaran belum lengkap!");
+                return;
+            }
+
+            double totalHarga = Double.parseDouble(totalClean);
+            double uangBayar = Double.parseDouble(bayarClean);
+
+            if (uangBayar < totalHarga) {
+                JOptionPane.showMessageDialog(this, "Uang pembayaran tidak cukup!");
+                return;
+            }
+
+            double kembalian = uangBayar - totalHarga;
+            String kembaliF = "Rp. " + String.format(java.util.Locale.ITALY, "%,.0f", kembalian);
+            jLabel4.setText(kembaliF);
+
+            // =========================
+            // 1️⃣ SIMPAN TRANSAKSI
+            // =========================
+            int idTransaksi = simpanTransaksi(totalHarga);
+            
+            DefaultTableModel modelTabel =
+                    (DefaultTableModel) jTable1.getModel();
+            
+            simpanDetailTransaksi(idTransaksi, modelTabel);
+
+            // =========================
+            // 2️⃣ BUKA NOTA
+            // =========================
+            Nota dialogNota = new Nota(this, true);
+
+            dialogNota.setDataNota(
+                modelTabel,
+                jLabel5.getText(),
+                jTextField2.getText(),
+                kembaliF,
+                namaKasirLogin,
+                idTransaksi
+            );
+
+            dialogNota.setVisible(true);
+
+            // =========================
+            // 3️⃣ RESET KASIR
+            // =========================
+            modelTabel.setRowCount(0);
+            jLabel5.setText("Rp. 0");
+            jLabel4.setText("Rp. 0");
+            jTextField2.setText("");
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal Checkout: " + e.getMessage());
+            e.printStackTrace();
         }
-
-        double totalHarga = Double.parseDouble(totalClean);
-        double uangBayar = Double.parseDouble(bayarClean);
-
-        if (uangBayar < totalHarga) {
-            JOptionPane.showMessageDialog(this, "Uang pembayaran tidak cukup!");
-            return;
-        }
-
-        // 2. Hitung Kembalian & Format Rupiah (PENTING: Gunakan Locale.ITALY)
-        double kembalian = uangBayar - totalHarga;
-        
-        // Locale.ITALY otomatis menggunakan titik (.) untuk ribuan
-        String formatKembalian = String.format(java.util.Locale.ITALY, "%,.0f", kembalian);
-        
-        // Set teks ke label (Contoh: Rp. 50.000)
-        jLabel4.setText("Rp. " + formatKembalian);
-        
-        // 3. Tampilkan Nota
-        Nota dialogNota = new Nota(this, true);
-        String bayarDiformat = jTextField2.getText();
-
-        dialogNota.setDataNota(
-            (DefaultTableModel) jTable1.getModel(), 
-            jLabel5.getText(), 
-            bayarDiformat, 
-            jLabel4.getText()
-        );
-        
-        dialogNota.setLocationRelativeTo(this);
-        dialogNota.setVisible(true); 
-        
-        // 4. Reset Form (Gunakan format 0 yang konsisten)
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-        
-        jLabel5.setText("Rp. 0"); // Total Kembali ke 0
-        jLabel4.setText("Rp. 0"); // Kembalian Kembali ke 0
-        jTextField2.setText("");
-
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(this, "Input hanya boleh angka!");
-    } catch (Exception e) {
-        JOptionPane.showMessageDialog(this, "Gagal Checkout: " + e.getMessage());
-        e.printStackTrace();
-    }
     }//GEN-LAST:event_jButton5ActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        // TODO add your handling code here:
+        // Konfirmasi logout
+        int confirm = javax.swing.JOptionPane.showConfirmDialog(
+            this,
+            "Apakah Anda yakin ingin logout?",
+            "Logout",
+            javax.swing.JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm == javax.swing.JOptionPane.YES_OPTION) {
+            // Buka form login
+            Admin.login1 loginForm = new Admin.login1();
+            loginForm.setVisible(true);
+            loginForm.pack();
+            loginForm.setLocationRelativeTo(null);
+
+            // Tutup form Halaman_Kasir saat ini
+            this.dispose();
+        }
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         try {
-            Laporan_keuangan laporan = new Laporan_keuangan();
-            laporan.setVisible(true);
-            this.dispose(); // optional: tutup form sekarang
+            Riwayat_transaksi riwayat =
+                    new Riwayat_transaksi(idKasirLogin, namaKasirLogin);
+
+            riwayat.setVisible(true);
+            riwayat.setLocationRelativeTo(null);
+
+            this.dispose(); // tutup Halaman_Kasir
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, 
-                "Gagal membuka laporan keuangan\n" + e.getMessage(),
+            JOptionPane.showMessageDialog(this,
+                "Gagal membuka riwayat transaksi\n" + e.getMessage(),
                 "Error",
                 JOptionPane.ERROR_MESSAGE
             );
             e.printStackTrace();
         }
-    }//GEN-LAST:event_jButton2ActionPerformed
+    }//GEN-LAST:event_jButton3ActionPerformed
 
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new Halaman_Kasir().setVisible(true));
-    }
+    
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;

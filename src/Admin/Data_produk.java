@@ -8,11 +8,13 @@ import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import vapestore.koneksi;
+import java.text.DecimalFormat;
+
 
 
 /**
  *
- * @author Irfan
+ * @author vaena
  */
 public class Data_produk extends javax.swing.JFrame {
     
@@ -28,6 +30,7 @@ public class Data_produk extends javax.swing.JFrame {
     
     private void loadDataProduk() {
     DefaultTableModel model = new DefaultTableModel();
+    DecimalFormat df = new DecimalFormat("#,###");
     model.addColumn("ID");
     model.addColumn("Kode");
     model.addColumn("Nama Produk");
@@ -44,15 +47,19 @@ public class Data_produk extends javax.swing.JFrame {
              "FROM products p LEFT JOIN produk_kategori k ON p.product_category = k.id")) {
 
         while (rs.next()) {
+            String hargaJual = df.format(rs.getDouble("product_price_s"));
+            String hargaBeli = df.format(rs.getDouble("product_price_b"));
+
             model.addRow(new Object[]{
                 rs.getInt("id"),
                 rs.getString("product_code"),
                 rs.getString("product_name"),
                 rs.getString("kategori"),
-                rs.getDouble("product_price_s"),
-                rs.getDouble("product_price_b"),
+                hargaJual,
+                hargaBeli,
                 rs.getInt("product_stock")
             });
+
         }
 
         jTable1.setModel(model);
@@ -124,6 +131,12 @@ public class Data_produk extends javax.swing.JFrame {
         jButton5.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton5ActionPerformed(evt);
+            }
+        });
+
+        jTextField1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTextField1ActionPerformed(evt);
             }
         });
 
@@ -227,50 +240,100 @@ public class Data_produk extends javax.swing.JFrame {
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
         // TODO add your handling code here:
-         Edit_produk Ep = new Edit_produk(this, true);
-         Ep.setVisible(true);
-        
+        int row = jTable1.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Pilih produk dulu!");
+            return;
+        }
+
+        int id = Integer.parseInt(jTable1.getValueAt(row, 0).toString());
+        String kode = jTable1.getValueAt(row, 1).toString();
+        String nama = jTable1.getValueAt(row, 2).toString();
+        String kategori = jTable1.getValueAt(row, 3).toString();
+        String hargaJual = jTable1.getValueAt(row, 4).toString().replace(",", "");
+        String hargaBeli = jTable1.getValueAt(row, 5).toString().replace(",", "");
+        String stok = jTable1.getValueAt(row, 6).toString();
+
+        Edit_produk ep = new Edit_produk(this, true);
+        ep.setData(id, kode, nama, kategori, hargaJual, hargaBeli, stok);
+        ep.setVisible(true);      
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton6ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton6ActionPerformed
         // TODO add your handling code here:
-        String keyword = jTextField1.getText();
-    DefaultTableModel model = new DefaultTableModel();
-    model.addColumn("ID");
-    model.addColumn("Kode");
-    model.addColumn("Nama Produk");
-    model.addColumn("Kategori");
-    model.addColumn("Harga Jual");
-    model.addColumn("Harga Beli");
-    model.addColumn("Stok");
+        String keyword = jTextField1.getText().trim();
 
-    try (Connection conn = koneksi.getKoneksi();
-         PreparedStatement ps = conn.prepareStatement(
-             "SELECT p.id, p.product_code, p.product_name, k.nama AS kategori, " +
-             "p.product_price_s, p.product_price_b, p.product_stock " +
-             "FROM products p LEFT JOIN produk_kategori k ON p.product_category = k.id " +
-             "WHERE p.product_name LIKE ? OR p.product_code LIKE ?")) {
-
-        ps.setString(1, "%" + keyword + "%");
-        ps.setString(2, "%" + keyword + "%");
-        ResultSet rs = ps.executeQuery();
-
-        while (rs.next()) {
-            model.addRow(new Object[]{
-                rs.getInt("id"),
-                rs.getString("product_code"),
-                rs.getString("product_name"),
-                rs.getString("kategori"),
-                rs.getDouble("product_price_s"),
-                rs.getDouble("product_price_b"),
-                rs.getInt("product_stock")
-            });
+        // jika kosong → load semua data
+        if (keyword.isEmpty()) {
+            loadDataProduk();
+            return;
         }
 
-        jTable1.setModel(model);
-    } catch (SQLException e) {
-        JOptionPane.showMessageDialog(this, "Gagal mencari produk: " + e.getMessage());
-    }
+        DefaultTableModel model = new DefaultTableModel();
+        DecimalFormat df = new DecimalFormat("#,###");
+
+        model.addColumn("ID");
+        model.addColumn("Kode");
+        model.addColumn("Nama Produk");
+        model.addColumn("Kategori");
+        model.addColumn("Harga Jual");
+        model.addColumn("Harga Beli");
+        model.addColumn("Stok");
+
+        try (Connection conn = koneksi.getKoneksi()) {
+
+            PreparedStatement ps;
+
+            // 🔹 JIKA ANGKA → CARI BERDASARKAN ID
+            if (keyword.matches("\\d+")) {
+                ps = conn.prepareStatement(
+                    "SELECT p.id, p.product_code, p.product_name, k.nama AS kategori, " +
+                    "p.product_price_s, p.product_price_b, p.product_stock " +
+                    "FROM products p " +
+                    "LEFT JOIN produk_kategori k ON p.product_category = k.id " +
+                    "WHERE p.id = ?"
+                );
+                ps.setInt(1, Integer.parseInt(keyword));
+            } 
+            // 🔹 JIKA TEKS → CARI NAMA / KODE
+            else {
+                ps = conn.prepareStatement(
+                    "SELECT p.id, p.product_code, p.product_name, k.nama AS kategori, " +
+                    "p.product_price_s, p.product_price_b, p.product_stock " +
+                    "FROM products p " +
+                    "LEFT JOIN produk_kategori k ON p.product_category = k.id " +
+                    "WHERE p.product_name LIKE ? OR p.product_code LIKE ?"
+                );
+                ps.setString(1, "%" + keyword + "%");
+                ps.setString(2, "%" + keyword + "%");
+            }
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                String hargaJual = "Rp " + df.format(rs.getDouble("product_price_s"));
+                String hargaBeli = "Rp " + df.format(rs.getDouble("product_price_b"));
+
+                model.addRow(new Object[]{
+                    rs.getInt("id"),
+                    rs.getString("product_code"),
+                    rs.getString("product_name"),
+                    rs.getString("kategori"),
+                    hargaJual,
+                    hargaBeli,
+                    rs.getInt("product_stock")
+                });
+            }
+
+            jTable1.setModel(model);
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Kesalahan pencarian produk\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
     }//GEN-LAST:event_jButton6ActionPerformed
 
     private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
@@ -280,43 +343,69 @@ public class Data_produk extends javax.swing.JFrame {
     }//GEN-LAST:event_jButton5ActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // TODO add your handling code here:
         int selectedRow = jTable1.getSelectedRow();
 
-    if (selectedRow == -1) { // tidak ada baris yang dipilih
-        JOptionPane.showMessageDialog(this, "Pilih data yang ingin dihapus terlebih dahulu!");
-        return;
-    }
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Pilih produk yang ingin dihapus!");
+            return;
+        }
 
-    // Ambil ID dari kolom pertama tabel
-    int id = Integer.parseInt(jTable1.getValueAt(selectedRow, 0).toString());
+        int id = Integer.parseInt(jTable1.getValueAt(selectedRow, 0).toString());
 
-    int confirm = JOptionPane.showConfirmDialog(
-        this,
-        "Apakah Anda yakin ingin menghapus data dengan ID: " + id + "?",
-        "Konfirmasi Hapus",
-        JOptionPane.YES_NO_OPTION
-    );
+        int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "Apakah Anda yakin ingin menghapus produk ini?",
+            "Konfirmasi",
+            JOptionPane.YES_NO_OPTION
+        );
 
-    if (confirm == JOptionPane.YES_OPTION) {
-        try (Connection conn = koneksi.getKoneksi();
-             PreparedStatement pst = conn.prepareStatement("DELETE FROM products WHERE id = ?")) {
+        if (confirm != JOptionPane.YES_OPTION) return;
 
-            pst.setInt(1, id);
-            int affected = pst.executeUpdate();
+        try (Connection conn = koneksi.getKoneksi()) {
 
-            if (affected > 0) {
-                JOptionPane.showMessageDialog(this, "Data berhasil dihapus!");
-                loadDataProduk(); // Refresh tabel
-            } else {
-                JOptionPane.showMessageDialog(this, "Data gagal dihapus!");
+            // 🔹 CEK APAKAH PRODUK SUDAH DIPAKAI DI TRANSAKSI
+            PreparedStatement cek = conn.prepareStatement(
+                "SELECT COUNT(*) FROM transaksi_detail WHERE id_produk = ?"
+            );
+            cek.setInt(1, id);
+            ResultSet rs = cek.executeQuery();
+            rs.next();
+
+            int jumlahDipakai = rs.getInt(1);
+
+            if (jumlahDipakai > 0) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Produk tidak dapat dihapus karena sudah digunakan dalam transaksi!",
+                    "Gagal Hapus",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return;
             }
 
+            // 🔹 JIKA BELUM DIPAKAI → BOLEH DIHAPUS
+            PreparedStatement hapus = conn.prepareStatement(
+                "DELETE FROM products WHERE id = ?"
+            );
+            hapus.setInt(1, id);
+            hapus.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Produk berhasil dihapus!");
+            loadDataProduk();
+
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this, "Terjadi kesalahan: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                "Terjadi kesalahan:\n" + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE
+            );
         }
-    }
     }//GEN-LAST:event_jButton4ActionPerformed
+
+    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
+        // TODO add your handling code here:
+        jButton6ActionPerformed(evt);
+    }//GEN-LAST:event_jTextField1ActionPerformed
 
     /**
      * @param args the command line arguments

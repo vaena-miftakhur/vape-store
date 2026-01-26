@@ -1,0 +1,13 @@
+====== RISE VAPESTORE ======
+No Transaksi : TRX60
+Kasir        : vaena
+Tanggal      : 20-01-2026 06:22:17
+-----------------------------
+liquid kopi x3 @ 90.000
+liquid anggur x1 @ 90.000
+liquid sugoy x1 @ 79.000
+-----------------------------
+Total   : Rp. 439.000
+Bayar   : Rp. 500.000
+Kembali : Rp. 61.000
+=============================

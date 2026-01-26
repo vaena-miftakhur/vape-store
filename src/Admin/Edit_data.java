@@ -4,13 +4,20 @@
  */
 package Admin;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import javax.swing.JOptionPane;
+import vapestore.koneksi;
+
+
 /**
  *
- * @author hp5cd
+ * @author vaena
  */
 public class Edit_data extends javax.swing.JDialog {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Edit_data.class.getName());
+    private int userId;
 
     /**
      * Creates new form Edit_data_user
@@ -19,6 +26,16 @@ public class Edit_data extends javax.swing.JDialog {
         super(parent, modal);
         initComponents();
     }
+    
+    public void setData(int id, String fullname, String username, String password, String level) {
+        this.userId = id;
+        jTextField1.setText(fullname);   // FULLNAME
+        jTextField2.setText(username);   // USERNAME
+        jTextField3.setText(password);   // PASSWORD
+        jComboBox1.setSelectedItem(level); // JABATAN
+    }
+
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -79,6 +96,11 @@ public class Edit_data extends javax.swing.JDialog {
         jButton1.setBackground(new java.awt.Color(51, 102, 255));
         jButton1.setForeground(new java.awt.Color(255, 255, 255));
         jButton1.setText("Simpan");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
 
         jButton2.setBackground(new java.awt.Color(255, 51, 102));
         jButton2.setForeground(new java.awt.Color(255, 255, 255));
@@ -165,6 +187,29 @@ public class Edit_data extends javax.swing.JDialog {
     du.setLocationRelativeTo(null);
     }//GEN-LAST:event_jButton2ActionPerformed
 
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        // TODO add your handling code here:
+        try (Connection conn = koneksi.getKoneksi()) {
+
+            String sql = "UPDATE users SET nama=?, username=?, password=?, level=? WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            ps.setString(1, jTextField1.getText());
+            ps.setString(2, jTextField2.getText());
+            ps.setString(3, jTextField3.getText());
+            ps.setString(4, jComboBox1.getSelectedItem().toString());
+            ps.setInt(5, userId);
+
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Data user berhasil diupdate");
+            dispose();
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Gagal update: " + e.getMessage());
+        }
+    }//GEN-LAST:event_jButton1ActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -216,24 +261,4 @@ public class Edit_data extends javax.swing.JDialog {
     private javax.swing.JTextField jTextField2;
     private javax.swing.JTextField jTextField3;
     // End of variables declaration//GEN-END:variables
-
-    void setId(int id) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    void setFN(String FN) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    void setUS(String UN) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    void setPS(String PS) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    void setLV(String LV) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
 }

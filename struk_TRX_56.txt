@@ -1,0 +1,12 @@
+====== RISE VAPESTORE ======
+No Transaksi : TRX56
+Kasir        : irfan
+Tanggal      : 20-01-2026 02:30:05
+-----------------------------
+liquid sugoy x1 @ 79.000
+liquid kopi x1 @ 90.000
+-----------------------------
+Total   : Rp. 169.000
+Bayar   : Rp. 200.000
+Kembali : Rp. 31.000
+=============================

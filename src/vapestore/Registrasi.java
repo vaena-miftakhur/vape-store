@@ -16,6 +16,7 @@ public class Registrasi extends JFrame {
    
     public Registrasi() {
         initComponents();
+        setLocationRelativeTo(null);
     }
     
 
